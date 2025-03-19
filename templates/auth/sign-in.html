@@ -1,0 +1,64 @@
+{% extends "partials/base.html" %} {% load static %} {% block content %}
+<!-- Login Reg start -->
+<section class="login-reg">
+  <div class="overlay pt-120">
+    <div class="container">
+      <div class="row align-items-center justify-content-center">
+        <div class="col-xl-6 order-xl-0 order-1">
+          <div class="sec-img d-rtl">
+            <img
+              src="{% static 'assets/images/signin-reg-bg.png' %}"
+              class="max-un user-reg-img"
+              alt="image"
+            />
+          </div>
+        </div>
+        <div class="col-xl-5">
+          <div class="section-text text-center">
+            <h5 class="sub-title">Welcome to KCoin</h5>
+            <h2 class="title">Sign in now</h2>
+            <p class="dont-acc">
+              Don't have an account yet? <a href="{% url "user_auths:sign-up" %}">Sign Up</a>
+            </p>
+            {% comment %} <div class="reg-google">
+              <a href="javascript:void(0)"
+                ><i class="fab fa-google"></i>Sign up with Google</a
+              >
+            </div>
+            <span class="or">Or Continue With</span> {% endcomment %}
+          </div>
+
+          {% comment %} {% if messages %}
+            {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+              {{ message }}
+              <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+            {% endfor %}
+          {% endif %} {% endcomment %}
+
+          <form method="POST">
+            {% csrf_token %}
+            <div class="row">
+              <div class="col-12">
+                <div class="single-input">
+                  <label for="">Email</label>
+                  <input type="text" required name="email" id="logemail" placeholder="Enter your Email">
+                </div>
+                <div class="single-input">
+                  <label for="">Password</label>
+                    <input type="password" required name="password" id="logemail" placeholder="Enter your Password">
+                </div>
+                <br>
+                <button class="cmn-btn w-100">Login</button>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+<!-- Login Reg end -->
+
+{% endblock content %}
