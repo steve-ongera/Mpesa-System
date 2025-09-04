@@ -18,6 +18,10 @@
     <link rel="stylesheet" href="{% static 'assets1/css/arafat-font.css' %}" />
     <link rel="stylesheet" href="{% static 'assets1/css/plugin/animate.css' %}"/>
     <link rel="stylesheet" href="{% static 'assets1/css/style.css' %}" />
+
+    {% block extra_css %}
+     
+    {% endblock %}
   </head>
 
   <body>
@@ -197,7 +201,7 @@
                     </div>
 
                       <div class="profile-head">
-                        <a href="#">
+                        <a href="{% url 'profile'%}">
                           
                           <h5>{{user.username}} </h5>
                         </a>
@@ -337,6 +341,11 @@
     <!-- header-section end -->
 
     {% block content %}{% endblock content %}
+
+
+    {% block extra_js %}
+    
+    {% endblock %}
 
     <!--==================================================================-->
     <script src="{% static 'assets1/js/jquery.min.js' %}"></script>

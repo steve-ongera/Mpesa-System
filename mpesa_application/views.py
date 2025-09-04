@@ -1378,7 +1378,7 @@ def profile_view(request):
         'profile_completion': profile_completion,
     }
     
-    return render(request, 'profile.html', context)
+    return render(request, 'customer/profile.html', context)
 
 @login_required
 def update_profile(request):

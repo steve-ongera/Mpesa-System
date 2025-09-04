@@ -1,0 +1,480 @@
+{% extends "partials/dashboard-base.html" %}
+{% load static %}
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/profile.css' %}">
+{% endblock %}
+{% block content %}
+
+    <!-- Profile Section start -->
+    <section class="dashboard-section body-collapse">
+        <div class="overlay pt-120">
+            <div class="container-fruid">
+                <div class="row">
+                    <div class="col-xl-8 col-lg-7">
+                        <div class="section-content">
+                            <!-- Profile Header -->
+                            <div class="acc-details">
+                                <div class="top-area">
+                                    <div class="left-side">
+                                        <h5>Profile Settings</h5>
+                                        <h3>{{ user.first_name|title }} {{ user.last_name|title }}</h3>
+                                        <p class="receive">Member since <span>{{ user.date_joined|date:"d M Y" }}</span></p>
+                                    </div>
+                                    <div class="right-side">
+                                        <div class="right-bottom">
+                                            <h4>
+                                                {% if user.is_verified %}
+                                                    <span style="color: green;">Verified Account</span>
+                                                {% else %}
+                                                    <span style="color: orange;">Unverified Account</span>
+                                                {% endif %}
+                                            </h4>
+                                            <h5>Status</h5>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Profile Tabs -->
+                            <div class="transactions-area mt-40">
+                                <div class="section-text">
+                                    <h5>Account Management</h5>
+                                    <p>Manage your account details and security settings</p>
+                                </div>
+                                <div class="top-area d-flex align-items-center justify-content-between">
+                                    <ul class="nav nav-tabs" role="tablist">
+                                        <li class="nav-item" role="presentation">
+                                            <button class="nav-link active" id="profile-tab" data-bs-toggle="tab" data-bs-target="#profile" type="button" role="tab" aria-controls="profile" aria-selected="true">Profile Details</button>
+                                        </li>
+                                        <li class="nav-item" role="presentation">
+                                            <button class="nav-link" id="security-tab" data-bs-toggle="tab" data-bs-target="#security" type="button" role="tab" aria-controls="security" aria-selected="false">Security</button>
+                                        </li>
+                                        <li class="nav-item" role="presentation">
+                                            <button class="nav-link" id="accounts-tab" data-bs-toggle="tab" data-bs-target="#accounts" type="button" role="tab" aria-controls="accounts" aria-selected="false">My Accounts</button>
+                                        </li>
+                                    </ul>
+                                </div>
+                                
+                                <div class="tab-content mt-40">
+                                    <!-- Profile Details Tab -->
+                                    <div class="tab-pane fade show active" id="profile" role="tabpanel" aria-labelledby="profile-tab">
+                                        <form method="POST" action="{% url 'update_profile' %}">
+                                            {% csrf_token %}
+                                            <div class="row">
+                                                <div class="col-md-6">
+                                                    <div class="single-input">
+                                                        <label for="first_name">First Name</label>
+                                                        <input type="text" id="first_name" name="first_name" value="{{ user.first_name }}" placeholder="Enter first name">
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <div class="single-input">
+                                                        <label for="last_name">Last Name</label>
+                                                        <input type="text" id="last_name" name="last_name" value="{{ user.last_name }}" placeholder="Enter last name">
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <div class="single-input">
+                                                        <label for="email">Email Address</label>
+                                                        <input type="email" id="email" name="email" value="{{ user.email }}" placeholder="Enter email address">
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <div class="single-input">
+                                                        <label for="phone_number">Phone Number</label>
+                                                        <input type="text" id="phone_number" name="phone_number" value="{{ user.phone_number }}" placeholder="+254XXXXXXXXX">
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <div class="single-input">
+                                                        <label for="id_number">National ID Number</label>
+                                                        <input type="text" id="id_number" name="id_number" value="{{ user.id_number }}" placeholder="Enter ID number">
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <div class="single-input">
+                                                        <label for="date_of_birth">Date of Birth</label>
+                                                        <input type="date" id="date_of_birth" name="date_of_birth" value="{{ user.date_of_birth|date:'Y-m-d' }}">
+                                                    </div>
+                                                </div>
+                                                <div class="col-12">
+                                                    <button type="submit" class="cmn-btn">Update Profile</button>
+                                                </div>
+                                            </div>
+                                        </form>
+                                    </div>
+
+                                    <!-- Security Tab -->
+                                    <div class="tab-pane fade" id="security" role="tabpanel" aria-labelledby="security-tab">
+                                        <div class="row">
+                                            <div class="col-12">
+                                                <h6>Change Password</h6>
+                                                <form method="POST" action="{% url 'change_password' %}">
+                                                    {% csrf_token %}
+                                                    <div class="row">
+                                                        <div class="col-md-12">
+                                                            <div class="single-input">
+                                                                <label for="old_password">Current Password</label>
+                                                                <input type="password" id="old_password" name="old_password" placeholder="Enter current password">
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-md-6">
+                                                            <div class="single-input">
+                                                                <label for="new_password1">New Password</label>
+                                                                <input type="password" id="new_password1" name="new_password1" placeholder="Enter new password">
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-md-6">
+                                                            <div class="single-input">
+                                                                <label for="new_password2">Confirm New Password</label>
+                                                                <input type="password" id="new_password2" name="new_password2" placeholder="Confirm new password">
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-12">
+                                                            <button type="submit" class="cmn-btn">Change Password</button>
+                                                        </div>
+                                                    </div>
+                                                </form>
+                                            </div>
+                                        </div>
+
+                                        <!-- PIN Management for MPesa Account -->
+                                        {% if mpesa_account %}
+                                        <div class="row mt-40">
+                                            <div class="col-12">
+                                                <h6>M-Pesa PIN Management</h6>
+                                                <form method="POST" action="{% url 'change_mpesa_pin' %}">
+                                                    {% csrf_token %}
+                                                    <div class="row">
+                                                        <div class="col-md-6">
+                                                            <div class="single-input">
+                                                                <label for="current_pin">Current PIN</label>
+                                                                <input type="password" id="current_pin" name="current_pin" placeholder="Enter current PIN" maxlength="4">
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-md-6">
+                                                            <div class="single-input">
+                                                                <label for="new_pin">New PIN</label>
+                                                                <input type="password" id="new_pin" name="new_pin" placeholder="Enter new PIN" maxlength="4">
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-12">
+                                                            <button type="submit" class="cmn-btn">Change PIN</button>
+                                                        </div>
+                                                    </div>
+                                                </form>
+                                            </div>
+                                        </div>
+                                        {% endif %}
+                                    </div>
+
+                                    <!-- My Accounts Tab -->
+                                    <div class="tab-pane fade" id="accounts" role="tabpanel" aria-labelledby="accounts-tab">
+                                        <div class="table-responsive">
+                                            <table class="table">
+                                                <thead>
+                                                    <tr>
+                                                        <th scope="col">Account Type</th>
+                                                        <th scope="col">Account Number</th>
+                                                        <th scope="col">Balance</th>
+                                                        <th scope="col">Status</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {% if mpesa_account %}
+                                                    <tr>
+                                                        <td>
+                                                            <p>M-Pesa Account</p>
+                                                            <p class="mdr">Mobile Money</p>
+                                                        </td>
+                                                        <td>
+                                                            <p>{{ mpesa_account.account_number }}</p>
+                                                            <p class="mdr">Created: {{ mpesa_account.created_at|date:"d M Y" }}</p>
+                                                        </td>
+                                                        <td>
+                                                            <p>Ksh {{ mpesa_account.balance }}</p>
+                                                        </td>
+                                                        <td>
+                                                            {% if mpesa_account.is_active %}
+                                                                <p class="completed">Active</p>
+                                                            {% else %}
+                                                                <p class="cancelled">Inactive</p>
+                                                            {% endif %}
+                                                        </td>
+                                                    </tr>
+                                                    {% endif %}
+
+                                                    {% if savings_account %}
+                                                    <tr>
+                                                        <td>
+                                                            <p>Savings Account</p>
+                                                            <p class="mdr">Personal Savings</p>
+                                                        </td>
+                                                        <td>
+                                                            <p>{{ savings_account.account_number }}</p>
+                                                            <p class="mdr">Created: {{ savings_account.created_at|date:"d M Y" }}</p>
+                                                        </td>
+                                                        <td>
+                                                            <p>Ksh {{ savings_account.balance }}</p>
+                                                        </td>
+                                                        <td>
+                                                            <p class="completed">Active</p>
+                                                        </td>
+                                                    </tr>
+                                                    {% endif %}
+
+                                                    {% if not mpesa_account and not savings_account %}
+                                                    <tr>
+                                                        <td colspan="4" class="text-center">No accounts found</td>
+                                                    </tr>
+                                                    {% endif %}
+                                                </tbody>
+                                            </table>
+                                        </div>
+
+                                        <!-- Open New Account Section -->
+                                        <div class="mt-40">
+                                            <h6>Open New Account</h6>
+                                            <div class="row">
+                                                {% if not savings_account %}
+                                                <div class="col-md-6">
+                                                    <div class="single-card">
+                                                        <button type="button" class="reg w-100" data-bs-toggle="modal" data-bs-target="#openSavingsMod">
+                                                            <div class="text-center p-4">
+                                                                <img src="{% static 'assets1/images/icon/savings.png' %}" alt="Savings" style="width: 50px; height: 50px;">
+                                                                <h6 class="mt-3">Open Savings Account</h6>
+                                                                <p>Start saving with us today</p>
+                                                            </div>
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right Side Panel -->
+                    <div class="col-xl-4 col-lg-5">
+                        <div class="side-items">
+                            <!-- Account Summary -->
+                            <div class="single-item">
+                                <div class="section-text">
+                                    <h6>Account Summary</h6>
+                                </div>
+                                <div class="row">
+                                    <div class="col-12">
+                                        <div class="acc-details mb-3">
+                                            <div class="top-area">
+                                                <div class="left-side">
+                                                    <h5>Total Balance</h5>
+                                                    {% if mpesa_account %}
+                                                        <h2>Ksh {{ mpesa_account.balance }}</h2>
+                                                    {% else %}
+                                                        <h2>Ksh 0.00</h2>
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {% if savings_account %}
+                                        <div class="acc-details">
+                                            <div class="top-area">
+                                                <div class="left-side">
+                                                    <h5>Savings Balance</h5>
+                                                    <h3>Ksh {{ savings_account.balance }}</h3>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Profile Completion -->
+                            <div class="single-item">
+                                <div class="section-text">
+                                    <h6>Profile Completion</h6>
+                                </div>
+                                <div class="profile-completion">
+                                    {% with completion_percentage=user.get_profile_completion_percentage %}
+                                    <div class="progress mb-3">
+                                        <div class="progress-bar" role="progressbar" style="width: {{ completion_percentage }}%;" aria-valuenow="{{ completion_percentage }}" aria-valuemin="0" aria-valuemax="100">
+                                            {{ completion_percentage }}%
+                                        </div>
+                                    </div>
+                                    <ul class="completion-list">
+                                        <li class="{% if user.first_name and user.last_name %}completed{% endif %}">
+                                            Complete your name
+                                        </li>
+                                        <li class="{% if user.email %}completed{% endif %}">
+                                            Add email address
+                                        </li>
+                                        <li class="{% if user.phone_number %}completed{% endif %}">
+                                            Add phone number
+                                        </li>
+                                        <li class="{% if user.id_number %}completed{% endif %}">
+                                            Add ID number
+                                        </li>
+                                        <li class="{% if user.is_verified %}completed{% endif %}">
+                                            Verify account
+                                        </li>
+                                    </ul>
+                                    {% endwith %}
+                                </div>
+                            </div>
+
+                            <!-- Recent Activity -->
+                            <div class="single-item">
+                                <div class="section-text">
+                                    <h6>Recent Activity</h6>
+                                </div>
+                                <ul class="recipients-item">
+                                    {% if recent_transactions %}
+                                        {% for transaction in recent_transactions %}
+                                            <li>
+                                                <p class="left">
+                                                    <span class="info">
+                                                        <span>{{ transaction.get_transaction_type_display }}</span>
+                                                        <span>{{ transaction.timestamp|time:"h:i A" }} — {{ transaction.timestamp|date:"d F" }}</span>
+                                                    </span>
+                                                </p>
+                                                <p class="right">
+                                                    {% if mpesa_account == transaction.sender %}
+                                                        <span class="loss">-Ksh {{ transaction.amount }}</span>
+                                                    {% else %}
+                                                        <span>+Ksh {{ transaction.amount }}</span>
+                                                    {% endif %}
+                                                    <span>{{ transaction.get_status_display }}</span>
+                                                </p>
+                                            </li>
+                                        {% endfor %}
+                                    {% else %}
+                                        <li>
+                                            <p>No recent activity</p>
+                                        </li>
+                                    {% endif %}
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Open Savings Account Modal -->
+    <div class="modal fade" id="openSavingsMod" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header justify-content-between">
+                    <h6>Open Savings Account</h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+                <form method="POST" action="{% url 'open_savings_account' %}">
+                    {% csrf_token %}
+                    <div class="row justify-content-center">
+                        <div class="col-md-12">
+                            <div class="single-input">
+                                <label for="next_of_kin_name">Next of Kin Name</label>
+                                <input type="text" name="next_of_kin_name" placeholder="Enter next of kin name" required>
+                            </div>
+                        </div>
+                        <div class="col-md-12">
+                            <div class="single-input">
+                                <label for="next_of_kin_phone">Next of Kin Phone</label>
+                                <input type="text" name="next_of_kin_phone" placeholder="+254XXXXXXXXX" required>
+                            </div>
+                        </div>
+                        <div class="col-md-12">
+                            <div class="single-input">
+                                <label for="next_of_kin_relationship">Relationship</label>
+                                <select name="next_of_kin_relationship" required>
+                                    <option value="">Select relationship</option>
+                                    <option value="Parent">Parent</option>
+                                    <option value="Sibling">Sibling</option>
+                                    <option value="Spouse">Spouse</option>
+                                    <option value="Child">Child</option>
+                                    <option value="Friend">Friend</option>
+                                    <option value="Other">Other</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <button type="submit" class="cmn-btn w-100">Open Savings Account</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom CSS for profile completion -->
+    <style>
+        .progress {
+            height: 10px;
+            background-color: #e9ecef;
+            border-radius: 5px;
+            overflow: hidden;
+        }
+        
+        .progress-bar {
+            background-color: #28a745;
+            transition: width 0.3s ease;
+        }
+        
+        .completion-list {
+            list-style: none;
+            padding: 0;
+        }
+        
+        .completion-list li {
+            padding: 8px 0;
+            position: relative;
+            padding-left: 25px;
+        }
+        
+        .completion-list li:before {
+            content: "○";
+            position: absolute;
+            left: 0;
+            color: #dc3545;
+        }
+        
+        .completion-list li.completed:before {
+            content: "●";
+            color: #28a745;
+        }
+        
+        .single-input {
+            margin-bottom: 20px;
+        }
+        
+        .single-input label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+        
+        .single-input input,
+        .single-input select {
+            width: 100%;
+            padding: 12px 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+        
+        .single-input input:focus,
+        .single-input select:focus {
+            outline: none;
+            border-color: #007bff;
+        }
+    </style>
+
+    {% endblock content %}
