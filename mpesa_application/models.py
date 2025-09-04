@@ -74,6 +74,47 @@ class User(AbstractUser):
     def __str__(self):
         return f"{self.username} - {self.phone_number or 'No phone'}"
 
+
+def get_profile_completion_percentage(self):
+    """
+    Calculate profile completion percentage based on required fields
+    """
+    total_fields = 5
+    completed_fields = 0
+    
+    # Check required fields
+    if self.first_name and self.last_name:
+        completed_fields += 1
+    
+    if self.email:
+        completed_fields += 1
+    
+    if self.phone_number:
+        completed_fields += 1
+    
+    if self.id_number:
+        completed_fields += 1
+    
+    if self.is_verified:
+        completed_fields += 1
+    
+    return int((completed_fields / total_fields) * 100)
+
+def get_full_name(self):
+    """
+    Return the user's full name, or username if name fields are empty
+    """
+    if self.first_name and self.last_name:
+        return f"{self.first_name} {self.last_name}"
+    return self.username
+
+def has_complete_profile(self):
+    """
+    Check if user has completed their profile
+    """
+    return self.get_profile_completion_percentage() >= 80
+
+
 class MPesaAccount(models.Model):
     """M-PESA account associated with a user"""
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='mpesa_account')
