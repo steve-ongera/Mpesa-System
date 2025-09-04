@@ -27,6 +27,14 @@ urlpatterns = [
     path("check-balance/", views.check_balance, name="check_balance"),
     path("transaction-history/", views.transaction_history, name="transaction_history"),
 
+    # Profile URLs
+    path('profile/', views.profile_view, name='profile'),
+    path('profile/update/', views.update_profile, name='update_profile'),
+    path('profile/change-password/', views.change_password, name='change_password'),
+    path('profile/change-mpesa-pin/', views.change_mpesa_pin, name='change_mpesa_pin'),
+    path('profile/open-savings/', views.open_savings_account, name='open_savings_account'),
+    path('profile/account-summary/', views.get_account_summary, name='account_summary'),
+
 
     #savings
     path('create-savings/', views.create_savings_account, name='create_savings_account'),

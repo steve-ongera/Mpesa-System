@@ -1318,3 +1318,301 @@ def repay_loan(request):
             messages.error(request, "Invalid amount entered.")
 
     return render(request, "loans/repay_loan.html", {"loan": active_loan})
+
+
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.auth.decorators import login_required
+from django.contrib import messages
+from django.contrib.auth import update_session_auth_hash
+from django.contrib.auth.forms import PasswordChangeForm
+from django.http import JsonResponse
+from django.core.exceptions import ValidationError
+from django.contrib.auth.hashers import make_password, check_password
+from django.db import transaction
+from django.utils import timezone
+from datetime import datetime, date
+from decimal import Decimal
+
+# Import your models
+from .models import User, MPesaAccount, SavingsAccount, Transaction, PhoneLine
+from .forms import UserProfileForm, MPesaPinChangeForm, SavingsAccountForm  # You'll need to create these forms
+
+@login_required
+def profile_view(request):
+    """
+    Main profile view that displays user profile, accounts, and recent activity
+    """
+    user = request.user
+    
+    # Get user's accounts
+    mpesa_account = None
+    savings_account = None
+    
+    try:
+        mpesa_account = user.mpesa_account
+    except MPesaAccount.DoesNotExist:
+        pass
+    
+    try:
+        savings_account = user.savings_account
+    except SavingsAccount.DoesNotExist:
+        pass
+    
+    # Get recent transactions (last 5)
+    recent_transactions = []
+    if mpesa_account:
+        recent_transactions = Transaction.objects.filter(
+            sender=mpesa_account
+        ).union(
+            Transaction.objects.filter(receiver=mpesa_account)
+        ).order_by('-timestamp')[:5]
+    
+    # Calculate profile completion percentage
+    profile_completion = calculate_profile_completion(user)
+    
+    context = {
+        'user': user,
+        'mpesa_account': mpesa_account,
+        'savings_account': savings_account,
+        'recent_transactions': recent_transactions,
+        'profile_completion': profile_completion,
+    }
+    
+    return render(request, 'profile.html', context)
+
+@login_required
+def update_profile(request):
+    """
+    Update user profile information
+    """
+    if request.method == 'POST':
+        user = request.user
+        
+        # Get form data
+        first_name = request.POST.get('first_name', '').strip()
+        last_name = request.POST.get('last_name', '').strip()
+        email = request.POST.get('email', '').strip()
+        phone_number = request.POST.get('phone_number', '').strip()
+        id_number = request.POST.get('id_number', '').strip()
+        date_of_birth = request.POST.get('date_of_birth')
+        
+        try:
+            with transaction.atomic():
+                # Update user fields
+                user.first_name = first_name
+                user.last_name = last_name
+                user.email = email
+                
+                # Validate and update phone number
+                if phone_number:
+                    if not phone_number.startswith('+254'):
+                        messages.error(request, 'Phone number must start with +254')
+                        return redirect('profile')
+                    
+                    # Check if phone number is unique (excluding current user)
+                    if User.objects.exclude(id=user.id).filter(phone_number=phone_number).exists():
+                        messages.error(request, 'This phone number is already registered')
+                        return redirect('profile')
+                    
+                    user.phone_number = phone_number
+                
+                # Validate and update ID number
+                if id_number:
+                    if not (id_number.isdigit() and (len(id_number) == 7 or len(id_number) == 8)):
+                        messages.error(request, 'ID number must be 7 or 8 digits')
+                        return redirect('profile')
+                    
+                    # Check if ID number is unique (excluding current user)
+                    if User.objects.exclude(id=user.id).filter(id_number=id_number).exists():
+                        messages.error(request, 'This ID number is already registered')
+                        return redirect('profile')
+                    
+                    user.id_number = id_number
+                
+                # Update date of birth
+                if date_of_birth:
+                    try:
+                        user.date_of_birth = datetime.strptime(date_of_birth, '%Y-%m-%d').date()
+                    except ValueError:
+                        messages.error(request, 'Invalid date format')
+                        return redirect('profile')
+                
+                user.save()
+                messages.success(request, 'Profile updated successfully!')
+                
+        except Exception as e:
+            messages.error(request, f'Error updating profile: {str(e)}')
+    
+    return redirect('profile')
+
+@login_required
+def change_password(request):
+    """
+    Change user password
+    """
+    if request.method == 'POST':
+        form = PasswordChangeForm(request.user, request.POST)
+        
+        if form.is_valid():
+            user = form.save()
+            update_session_auth_hash(request, user)  # Keep user logged in after password change
+            messages.success(request, 'Your password has been successfully changed!')
+        else:
+            # Extract form errors
+            for field, errors in form.errors.items():
+                for error in errors:
+                    messages.error(request, error)
+    
+    return redirect('profile')
+
+@login_required
+def change_mpesa_pin(request):
+    """
+    Change M-Pesa PIN
+    """
+    if request.method == 'POST':
+        try:
+            mpesa_account = request.user.mpesa_account
+            current_pin = request.POST.get('current_pin')
+            new_pin = request.POST.get('new_pin')
+            
+            # Validate current PIN
+            if not check_password(current_pin, mpesa_account.pin_hash):
+                messages.error(request, 'Current PIN is incorrect')
+                return redirect('profile')
+            
+            # Validate new PIN
+            if not new_pin or len(new_pin) != 4 or not new_pin.isdigit():
+                messages.error(request, 'New PIN must be exactly 4 digits')
+                return redirect('profile')
+            
+            # Update PIN
+            mpesa_account.pin_hash = make_password(new_pin)
+            mpesa_account.save()
+            
+            messages.success(request, 'M-Pesa PIN changed successfully!')
+            
+        except MPesaAccount.DoesNotExist:
+            messages.error(request, 'No M-Pesa account found')
+        except Exception as e:
+            messages.error(request, f'Error changing PIN: {str(e)}')
+    
+    return redirect('profile')
+
+@login_required
+def open_savings_account(request):
+    """
+    Open a new savings account for the user
+    """
+    if request.method == 'POST':
+        try:
+            # Check if user already has a savings account
+            if hasattr(request.user, 'savings_account'):
+                messages.error(request, 'You already have a savings account')
+                return redirect('profile')
+            
+            # Check if user has M-Pesa account (required for savings account)
+            try:
+                mpesa_account = request.user.mpesa_account
+            except MPesaAccount.DoesNotExist:
+                messages.error(request, 'You must have an M-Pesa account before opening a savings account')
+                return redirect('profile')
+            
+            # Get form data
+            next_of_kin_name = request.POST.get('next_of_kin_name', '').strip()
+            next_of_kin_phone = request.POST.get('next_of_kin_phone', '').strip()
+            next_of_kin_relationship = request.POST.get('next_of_kin_relationship', '').strip()
+            
+            # Validate required fields
+            if not all([next_of_kin_name, next_of_kin_phone, next_of_kin_relationship]):
+                messages.error(request, 'All next of kin fields are required')
+                return redirect('profile')
+            
+            # Validate phone number format
+            if not next_of_kin_phone.startswith('+254'):
+                messages.error(request, 'Next of kin phone number must start with +254')
+                return redirect('profile')
+            
+            with transaction.atomic():
+                # Create savings account
+                savings_account = SavingsAccount.objects.create(
+                    user=request.user,
+                    next_of_kin_name=next_of_kin_name,
+                    next_of_kin_phone=next_of_kin_phone,
+                    next_of_kin_relationship=next_of_kin_relationship,
+                )
+                
+                messages.success(request, 'Savings account opened successfully!')
+                
+        except Exception as e:
+            messages.error(request, f'Error opening savings account: {str(e)}')
+    
+    return redirect('profile')
+
+@login_required
+def get_account_summary(request):
+    """
+    AJAX endpoint to get account summary data
+    """
+    try:
+        user = request.user
+        mpesa_account = None
+        savings_account = None
+        total_balance = Decimal('0.00')
+        
+        try:
+            mpesa_account = user.mpesa_account
+            total_balance += mpesa_account.balance
+        except MPesaAccount.DoesNotExist:
+            pass
+        
+        try:
+            savings_account = user.savings_account
+            total_balance += savings_account.balance
+        except SavingsAccount.DoesNotExist:
+            pass
+        
+        data = {
+            'total_balance': str(total_balance),
+            'mpesa_balance': str(mpesa_account.balance) if mpesa_account else '0.00',
+            'savings_balance': str(savings_account.balance) if savings_account else '0.00',
+            'has_mpesa': mpesa_account is not None,
+            'has_savings': savings_account is not None,
+        }
+        
+        return JsonResponse(data)
+        
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+def calculate_profile_completion(user):
+    """
+    Calculate profile completion percentage
+    """
+    total_fields = 5
+    completed_fields = 0
+    
+    # Check required fields
+    if user.first_name and user.last_name:
+        completed_fields += 1
+    
+    if user.email:
+        completed_fields += 1
+    
+    if user.phone_number:
+        completed_fields += 1
+    
+    if user.id_number:
+        completed_fields += 1
+    
+    if user.is_verified:
+        completed_fields += 1
+    
+    return int((completed_fields / total_fields) * 100)
+
+# Add this method to your User model
+def get_profile_completion_percentage(self):
+    """
+    Method to add to User model for profile completion
+    """
+    return calculate_profile_completion(self)

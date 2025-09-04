@@ -196,3 +196,315 @@ class LoanRequestForm(forms.Form):
                 max_loan = loan_amount
 
         return max_loan
+
+
+from django import forms
+from django.core.validators import RegexValidator
+from django.core.exceptions import ValidationError
+from django.contrib.auth.forms import PasswordChangeForm
+from django.contrib.auth.hashers import check_password
+from .models import User, SavingsAccount, MPesaAccount
+
+# Phone number validator
+phone_regex = RegexValidator(
+    regex=r'^\+?254\d{9}$',
+    message="Phone number must be in the format: '+254XXXXXXXXX'"
+)
+
+# Kenyan ID validator
+def validate_kenyan_id(value):
+    if not (value.isdigit() and (len(value) == 8 or len(value) == 7)):
+        raise ValidationError("Kenyan ID must be 7 or 8 digits")
+
+class UserProfileForm(forms.ModelForm):
+    """
+    Form for updating user profile information
+    """
+    first_name = forms.CharField(
+        max_length=30,
+        required=True,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Enter first name'
+        })
+    )
+    
+    last_name = forms.CharField(
+        max_length=30,
+        required=True,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Enter last name'
+        })
+    )
+    
+    email = forms.EmailField(
+        required=True,
+        widget=forms.EmailInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Enter email address'
+        })
+    )
+    
+    phone_number = forms.CharField(
+        max_length=13,
+        validators=[phone_regex],
+        required=False,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': '+254XXXXXXXXX'
+        })
+    )
+    
+    id_number = forms.CharField(
+        max_length=8,
+        validators=[validate_kenyan_id],
+        required=False,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Enter ID number'
+        })
+    )
+    
+    date_of_birth = forms.DateField(
+        required=False,
+        widget=forms.DateInput(attrs={
+            'class': 'form-control',
+            'type': 'date'
+        })
+    )
+
+    class Meta:
+        model = User
+        fields = ['first_name', 'last_name', 'email', 'phone_number', 'id_number', 'date_of_birth']
+
+    def __init__(self, *args, **kwargs):
+        self.user = kwargs.pop('user', None)
+        super().__init__(*args, **kwargs)
+
+    def clean_email(self):
+        email = self.cleaned_data['email']
+        if self.user and User.objects.exclude(id=self.user.id).filter(email=email).exists():
+            raise ValidationError("This email is already registered.")
+        return email
+
+    def clean_phone_number(self):
+        phone_number = self.cleaned_data.get('phone_number')
+        if phone_number and self.user:
+            if User.objects.exclude(id=self.user.id).filter(phone_number=phone_number).exists():
+                raise ValidationError("This phone number is already registered.")
+        return phone_number
+
+    def clean_id_number(self):
+        id_number = self.cleaned_data.get('id_number')
+        if id_number and self.user:
+            if User.objects.exclude(id=self.user.id).filter(id_number=id_number).exists():
+                raise ValidationError("This ID number is already registered.")
+        return id_number
+
+class CustomPasswordChangeForm(PasswordChangeForm):
+    """
+    Custom password change form with better styling
+    """
+    old_password = forms.CharField(
+        label="Current Password",
+        strip=False,
+        widget=forms.PasswordInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Enter current password',
+            'autocomplete': 'current-password'
+        }),
+    )
+    
+    new_password1 = forms.CharField(
+        label="New Password",
+        strip=False,
+        widget=forms.PasswordInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Enter new password',
+            'autocomplete': 'new-password'
+        }),
+    )
+    
+    new_password2 = forms.CharField(
+        label="Confirm New Password",
+        strip=False,
+        widget=forms.PasswordInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Confirm new password',
+            'autocomplete': 'new-password'
+        }),
+    )
+
+class MPesaPinChangeForm(forms.Form):
+    """
+    Form for changing M-Pesa PIN
+    """
+    current_pin = forms.CharField(
+        max_length=4,
+        min_length=4,
+        widget=forms.PasswordInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Enter current PIN',
+            'maxlength': '4',
+            'pattern': '[0-9]{4}',
+            'title': 'PIN must be 4 digits'
+        }),
+        label="Current PIN"
+    )
+    
+    new_pin = forms.CharField(
+        max_length=4,
+        min_length=4,
+        widget=forms.PasswordInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Enter new PIN',
+            'maxlength': '4',
+            'pattern': '[0-9]{4}',
+            'title': 'PIN must be 4 digits'
+        }),
+        label="New PIN"
+    )
+    
+    confirm_new_pin = forms.CharField(
+        max_length=4,
+        min_length=4,
+        widget=forms.PasswordInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Confirm new PIN',
+            'maxlength': '4',
+            'pattern': '[0-9]{4}',
+            'title': 'PIN must be 4 digits'
+        }),
+        label="Confirm New PIN"
+    )
+
+    def __init__(self, user, *args, **kwargs):
+        self.user = user
+        super().__init__(*args, **kwargs)
+
+    def clean_current_pin(self):
+        current_pin = self.cleaned_data['current_pin']
+        
+        if not current_pin.isdigit():
+            raise ValidationError("PIN must contain only digits.")
+        
+        try:
+            mpesa_account = self.user.mpesa_account
+            if not check_password(current_pin, mpesa_account.pin_hash):
+                raise ValidationError("Current PIN is incorrect.")
+        except MPesaAccount.DoesNotExist:
+            raise ValidationError("No M-Pesa account found.")
+        
+        return current_pin
+
+    def clean_new_pin(self):
+        new_pin = self.cleaned_data['new_pin']
+        
+        if not new_pin.isdigit():
+            raise ValidationError("PIN must contain only digits.")
+        
+        return new_pin
+
+    def clean(self):
+        cleaned_data = super().clean()
+        new_pin = cleaned_data.get("new_pin")
+        confirm_new_pin = cleaned_data.get("confirm_new_pin")
+
+        if new_pin and confirm_new_pin:
+            if new_pin != confirm_new_pin:
+                raise ValidationError("New PIN and confirmation PIN do not match.")
+
+        return cleaned_data
+
+class SavingsAccountForm(forms.ModelForm):
+    """
+    Form for opening a savings account
+    """
+    RELATIONSHIP_CHOICES = [
+        ('', 'Select relationship'),
+        ('Parent', 'Parent'),
+        ('Sibling', 'Sibling'),
+        ('Spouse', 'Spouse'),
+        ('Child', 'Child'),
+        ('Friend', 'Friend'),
+        ('Other', 'Other'),
+    ]
+
+    next_of_kin_name = forms.CharField(
+        max_length=255,
+        required=True,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Enter next of kin name'
+        }),
+        label="Next of Kin Name"
+    )
+    
+    next_of_kin_phone = forms.CharField(
+        max_length=13,
+        validators=[phone_regex],
+        required=True,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': '+254XXXXXXXXX'
+        }),
+        label="Next of Kin Phone"
+    )
+    
+    next_of_kin_relationship = forms.ChoiceField(
+        choices=RELATIONSHIP_CHOICES,
+        required=True,
+        widget=forms.Select(attrs={
+            'class': 'form-control'
+        }),
+        label="Relationship"
+    )
+
+    class Meta:
+        model = SavingsAccount
+        fields = ['next_of_kin_name', 'next_of_kin_phone', 'next_of_kin_relationship']
+
+    def __init__(self, user, *args, **kwargs):
+        self.user = user
+        super().__init__(*args, **kwargs)
+
+    def clean(self):
+        cleaned_data = super().clean()
+        
+        # Check if user already has a savings account
+        if hasattr(self.user, 'savings_account'):
+            raise ValidationError("You already have a savings account.")
+        
+        # Check if user has M-Pesa account
+        try:
+            self.user.mpesa_account
+        except MPesaAccount.DoesNotExist:
+            raise ValidationError("You must have an M-Pesa account before opening a savings account.")
+        
+        return cleaned_data
+
+class AccountVerificationForm(forms.Form):
+    """
+    Form for account verification
+    """
+    verification_code = forms.CharField(
+        max_length=6,
+        min_length=6,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Enter 6-digit verification code',
+            'maxlength': '6',
+            'pattern': '[0-9]{6}',
+            'title': 'Verification code must be 6 digits'
+        }),
+        label="Verification Code"
+    )
+
+    def clean_verification_code(self):
+        code = self.cleaned_data['verification_code']
+        
+        if not code.isdigit():
+            raise ValidationError("Verification code must contain only digits.")
+        
+        return code
