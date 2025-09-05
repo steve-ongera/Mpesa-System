@@ -17,7 +17,7 @@ urlpatterns = [
 
     #user views
 
-    path("login/", views.login_view, name="login"),
+    path("", views.login_view, name="login"),
     path('logout/', views.user_logout, name='logout'),
     path("customer_dashboard/", views.customer_dashboard, name="customer_dashboard"),
     path('search-agent/', views.search_agents, name='search_agents'),
